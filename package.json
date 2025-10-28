@@ -1,7 +1,7 @@
 {
   "name": "airplane-shooter-game",
   "version": "1.0.0",
-  "description": "一個簡單的飛機射擊遊戲",
+  "description": "一個簡單的吉他音波遊戲",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

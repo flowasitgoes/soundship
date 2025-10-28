@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
 
 // 啟動伺服器
 app.listen(PORT, () => {
-    console.log(`🚀 飛機射擊遊戲伺服器已啟動！`);
+    console.log(`🚀 吉他音波遊戲伺服器已啟動！`);
     console.log(`📡 請在瀏覽器開啟: http://localhost:${PORT}`);
     console.log(`⌨️  按 Ctrl+C 停止伺服器`);
 });
