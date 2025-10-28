@@ -23,8 +23,6 @@ body {
     padding: 24px 28px 32px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 35px rgba(74, 144, 226, 0.12);
     overflow: hidden;
-    width: min(90vw, 860px);
-    margin: 0 auto;
 }
 
 .game-container::before {
@@ -120,9 +118,6 @@ body {
     animation: canvasGlow 8s ease-in-out infinite;
     position: relative;
     z-index: 1;
-    width: 100%;
-    max-width: 800px;
-    height: auto;
 }
 
 .controls-info {
@@ -130,157 +125,6 @@ body {
     margin-top: 15px;
     font-size: 14px;
     color: #b0c4de;
-}
-
-.mobile-controls {
-    display: none;
-    position: absolute;
-    inset: auto 0 18px 0;
-    padding: 0 24px;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    width: 100%;
-    user-select: none;
-    touch-action: manipulation;
-    pointer-events: none;
-}
-
-.joystick-area {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: flex-start;
-    pointer-events: auto;
-}
-
-.joystick-base {
-    position: relative;
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, rgba(122, 160, 255, 0.85), rgba(34, 46, 98, 0.85));
-    box-shadow: inset 0 0 28px rgba(12, 18, 44, 0.9), 0 16px 28px rgba(10, 14, 39, 0.5);
-    border: 2px solid rgba(132, 166, 255, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    touch-action: none;
-}
-
-.joystick-base::after {
-    content: '';
-    position: absolute;
-    inset: 16px;
-    border-radius: 50%;
-    border: 1px dashed rgba(205, 220, 255, 0.4);
-    box-shadow: inset 0 0 20px rgba(94, 129, 255, 0.2);
-}
-
-.joystick-thumb {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(198, 210, 255, 0.95), rgba(104, 132, 238, 0.95));
-    box-shadow: 0 8px 16px rgba(30, 44, 88, 0.5);
-    transform: translate(-50%, -50%);
-    transition: transform 0.08s ease;
-    pointer-events: none;
-}
-
-.action-area {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: flex-end;
-    pointer-events: auto;
-}
-
-.shoot-button {
-    width: 104px;
-    height: 104px;
-    border-radius: 28px;
-    border: none;
-    background: radial-gradient(circle at 35% 35%, #ffe99a, #ff6b6b 75%);
-    color: #161b3b;
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    cursor: pointer;
-    box-shadow: 0 12px 26px rgba(255, 107, 107, 0.38);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-    touch-action: none;
-}
-
-.shoot-button:active,
-.shoot-button.shoot-active {
-    transform: scale(0.94);
-    box-shadow: 0 10px 20px rgba(200, 68, 101, 0.45);
-}
-
-@media (max-width: 900px) {
-    body {
-        align-items: flex-start;
-        padding: 24px 12px;
-    }
-
-    .game-container {
-        padding: 20px 18px 28px;
-    }
-
-    .score-board {
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .controls-info {
-        display: none;
-    }
-
-    .mobile-controls {
-        display: flex;
-        gap: 18px;
-    }
-
-    .joystick-base {
-        width: 140px;
-        height: 140px;
-    }
-
-    .joystick-thumb {
-        width: 56px;
-        height: 56px;
-    }
-
-    .shoot-button {
-        width: 96px;
-        height: 96px;
-        letter-spacing: 2px;
-    }
-}
-
-@media (max-width: 600px) {
-    .mobile-controls {
-        padding: 0 16px;
-        gap: 14px;
-        inset: auto 0 14px 0;
-    }
-
-    .joystick-base {
-        width: 128px;
-        height: 128px;
-    }
-
-    .joystick-thumb {
-        width: 52px;
-        height: 52px;
-    }
-
-    .shoot-button {
-        width: 88px;
-        height: 88px;
-    }
 }
 
 .effects-layer {
@@ -313,58 +157,6 @@ body {
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.65);
     animation: hitSpark 0.55s ease-out forwards;
-}
-
-.player-engine-aura {
-    position: absolute;
-    width: 150px;
-    height: 150px;
-    left: 0;
-    top: 0;
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0.7);
-    pointer-events: none;
-    opacity: 0;
-    background: radial-gradient(circle, rgba(255, 230, 140, 0.6) 0%, rgba(255, 190, 32, 0.2) 46%, rgba(255, 160, 0, 0) 70%);
-    box-shadow: 0 0 32px rgba(255, 214, 92, 0.4), 0 0 68px rgba(255, 180, 0, 0.25);
-    mix-blend-mode: screen;
-    filter: drop-shadow(0 0 8px rgba(255, 210, 96, 0.35));
-    transition: opacity 0.2s ease-out, transform 0.25s ease-out;
-    z-index: 3;
-}
-
-.player-engine-aura::before {
-    content: '';
-    position: absolute;
-    inset: 18px;
-    border-radius: 50%;
-    border: 3px solid rgba(255, 215, 0, 0.75);
-    box-shadow: 0 0 18px rgba(255, 196, 58, 0.6);
-    animation: auraOrbit 1.6s linear infinite;
-    transform-origin: center;
-}
-
-.player-engine-aura::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 229, 128, 0.55) 0%, rgba(255, 180, 0, 0.24) 45%, rgba(255, 165, 0, 0) 70%);
-    animation: auraPulse 1.2s ease-in-out infinite;
-    opacity: 0.65;
-}
-
-.player-engine-aura.is-active {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(0.95);
-}
-
-.player-engine-aura[data-direction="down"]::before {
-    animation-direction: reverse;
-}
-
-.player-engine-aura[data-direction="down"]::after {
-    animation-delay: 0.2s;
 }
 
 .game-over {
@@ -472,26 +264,6 @@ body {
     }
 }
 
-@keyframes auraPulse {
-    0%, 100% {
-        transform: scale(0.92);
-        opacity: 0.45;
-    }
-    50% {
-        transform: scale(1.05);
-        opacity: 0.85;
-    }
-}
-
-@keyframes auraOrbit {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
 @media (max-width: 900px) {
     body {
         padding: 20px;
@@ -501,3 +273,4 @@ body {
         transform: scale(0.9);
     }
 }
+

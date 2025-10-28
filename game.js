@@ -17,7 +17,8 @@ const CONFIG = {
     bullet: {
         width: 18,
         height: 18,
-        speed: 7,
+        speed: 4.5,
+        speedVariation: 1.5,  // 速度变化范围
         color: '#ff6fae'
     },
     enemy: {
@@ -167,48 +168,24 @@ renderLivesDisplay();
 // 音效管理
 class SoundManager {
     constructor() {
-        this.AudioContextClass = window.AudioContext || window.webkitAudioContext || null;
-        this.context = null;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        this.context = AudioContextClass ? new AudioContextClass() : null;
         this.masterGain = null;
         this.noiseBuffer = null;
         this.engineSound = null;
-    }
-
-    unlock() {
-        this.ensureActiveContext();
-    }
-
-    initializeContext() {
-        if (this.context || !this.AudioContextClass) {
-            return Boolean(this.context);
-        }
-
-        try {
-            this.context = new this.AudioContextClass();
+        if (this.context) {
             this.masterGain = this.context.createGain();
             this.masterGain.gain.value = 0.35;
             this.masterGain.connect(this.context.destination);
             this.noiseBuffer = this.createNoiseBuffer();
-            return true;
-        } catch (error) {
-            console.warn('音訊初始化失敗', error);
-            this.context = null;
-            this.masterGain = null;
-            this.noiseBuffer = null;
-            return false;
         }
     }
 
-    ensureActiveContext() {
-        if (!this.initializeContext()) {
-            return false;
+    unlock() {
+        if (!this.context) return;
+        if (this.context.state === 'suspended') {
+            this.context.resume();
         }
-
-        if (this.context && this.context.state === 'suspended') {
-            this.context.resume().catch(() => {});
-        }
-
-        return true;
     }
 
     createNoiseBuffer() {
@@ -223,7 +200,7 @@ class SoundManager {
     }
 
     playShootSound({ mode = 'normal' } = {}) {
-        if (!this.ensureActiveContext() || !this.context || !this.masterGain) return;
+        if (!this.context || !this.masterGain) return;
         const now = this.context.currentTime;
 
         const variant = Math.random();
@@ -274,7 +251,7 @@ class SoundManager {
     }
 
     playHitSound(type = 'stone') {
-        if (!this.ensureActiveContext() || !this.context || !this.masterGain) return;
+        if (!this.context || !this.masterGain) return;
         const now = this.context.currentTime;
 
         if (type === 'crystal') {
@@ -350,7 +327,7 @@ class SoundManager {
     }
 
     startEngineHum() {
-        if (!this.ensureActiveContext() || !this.masterGain || this.engineSound) return;
+        if (!this.context || !this.masterGain || this.engineSound) return;
         const now = this.context.currentTime;
 
         const gainNode = this.context.createGain();
@@ -465,7 +442,7 @@ class SoundManager {
 }
 
 const soundManager = new SoundManager();
-['pointerdown', 'pointerup', 'mousedown', 'click', 'keydown', 'touchstart', 'touchend'].forEach(eventName => {
+['pointerdown', 'keydown', 'touchstart'].forEach(eventName => {
     window.addEventListener(eventName, () => soundManager.unlock(), { passive: true });
 });
 
@@ -923,7 +900,8 @@ class Player {
                 gameState.bullets.push(new Bullet(bulletX + offset, bulletY, {
                     isMist: true,
                     initialAngle: angle,
-                    turnDirection: moveDirection
+                    turnDirection: moveDirection,
+                    consecutiveShots: gameState.consecutiveShots
                 }));
             });
 
@@ -936,7 +914,10 @@ class Player {
         gameState.consecutiveShots += 1;
 
         const shouldCurve = gameState.consecutiveShots >= 3;
-        gameState.bullets.push(new Bullet(bulletX, bulletY, { isCurved: shouldCurve }));
+        gameState.bullets.push(new Bullet(bulletX, bulletY, { 
+            isCurved: shouldCurve,
+            consecutiveShots: gameState.consecutiveShots
+        }));
 
         if (shouldCurve) {
             gameState.consecutiveShots = 0;
@@ -946,6 +927,31 @@ class Player {
     }
 }
 
+const NOTE_TYPES = ['whole', 'half', 'quarter', 'eighth', 'sixteenth'];
+
+function pickNoteType({ isMist = false, isCurved = false } = {}) {
+    if (isMist) {
+        return Math.random() < 0.6 ? 'eighth' : 'sixteenth';
+    }
+    if (isCurved) {
+        return Math.random() < 0.35 ? 'half' : 'quarter';
+    }
+    return NOTE_TYPES[Math.floor(Math.random() * NOTE_TYPES.length)];
+}
+
+function computeNoteColors(baseColor, noteType) {
+    const filledNote = noteType === 'quarter' || noteType === 'eighth' || noteType === 'sixteenth';
+    const headFill = filledNote ? lightenColor(baseColor, 0.18) : lightenColor(baseColor, 0.55);
+    return {
+        base: baseColor,
+        headFill,
+        headStroke: darkenColor(baseColor, filledNote ? 0.35 : 0.28),
+        stemAndFlag: darkenColor(baseColor, 0.45),
+        highlight: lightenColor(baseColor, 0.8),
+        innerFill: lightenColor(baseColor, 0.75)
+    };
+}
+
 // 子彈類別
 class Bullet {
     constructor(x, y, options = {}) {
@@ -953,7 +959,16 @@ class Bullet {
         this.y = y;
         this.width = CONFIG.bullet.width;
         this.height = CONFIG.bullet.height;
-        this.speed = CONFIG.bullet.speed;
+        
+        // 根據連續射擊次數動態調整速度
+        const consecutiveShots = options.consecutiveShots || 0;
+        const baseSpeed = CONFIG.bullet.speed;
+        const variation = CONFIG.bullet.speedVariation;
+        
+        // 使用正弦波產生節奏性的速度變化
+        const speedOffset = Math.sin(consecutiveShots * 0.8) * variation;
+        this.speed = baseSpeed + speedOffset;
+        
         this.angleAtSpawn = typeof options.initialAngle === 'number' ? options.initialAngle : 0;
         this.angle = this.angleAtSpawn;
         this.dx = Math.sin(this.angle) * this.speed;
@@ -971,14 +986,17 @@ class Bullet {
         this.mistWobbleStrength = this.isMist ? 0.05 + Math.random() * 0.04 : 0;
         this.mistWobblePhase = Math.random() * Math.PI * 2;
 
+        const baseColor = this.isCurved ? '#ff9ed5' : (this.isMist ? '#ffd6ed' : CONFIG.bullet.color);
+        this.noteType = pickNoteType({ isMist: this.isMist, isCurved: this.isCurved });
+        this.noteColors = computeNoteColors(baseColor, this.noteType);
+        this.color = baseColor;
+
         if (this.isCurved) {
             this.turnDelay = 6 + Math.floor(Math.random() * 10);
             this.turnAngle = (Math.random() * 0.9 + 0.35) * (Math.random() < 0.5 ? -1 : 1);
-            this.color = '#ff9ed5';
         } else if (this.isMist) {
             this.width *= 0.92;
             this.height *= 0.92;
-            this.color = '#ffd6ed';
         }
     }
 
@@ -994,20 +1012,89 @@ class Bullet {
         const scale = this.width / 20;
         ctx.scale(scale, scale);
 
-        const gradient = ctx.createLinearGradient(0, -10, 0, 12);
-        gradient.addColorStop(0, '#ffe3f3');
-        gradient.addColorStop(0.5, this.color);
-        gradient.addColorStop(1, '#ff3f88');
-        ctx.fillStyle = gradient;
-        ctx.shadowBlur = 14;
-        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 11;
+        ctx.shadowColor = this.noteColors.headFill;
 
+        const headWidth = 7.2;
+        const headHeight = 5.3;
+        const headTilt = -Math.PI / 7;
+        const stemWidth = 1.8;
+        const stemX = headWidth * 0.62;
+        const stemTop = -11;
+        const stemBottom = 6;
+
+        ctx.lineJoin = 'round';
+
+        if (this.noteType !== 'whole') {
+            ctx.fillStyle = this.noteColors.stemAndFlag;
+            ctx.beginPath();
+            ctx.moveTo(stemX - stemWidth / 2, stemTop);
+            ctx.lineTo(stemX + stemWidth / 2, stemTop);
+            ctx.lineTo(stemX + stemWidth / 2, stemBottom);
+            ctx.lineTo(stemX - stemWidth / 2, stemBottom);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.fillStyle = this.noteColors.headFill;
+        ctx.strokeStyle = this.noteColors.headStroke;
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(0, 10);
-        ctx.bezierCurveTo(-12, -2, -8, -16, 0, -6);
-        ctx.bezierCurveTo(8, -16, 12, -2, 0, 10);
-        ctx.closePath();
+        ctx.ellipse(0, 6, headWidth, headHeight, headTilt, 0, Math.PI * 2);
         ctx.fill();
+        if (this.noteType === 'whole' || this.noteType === 'half') {
+            ctx.stroke();
+            ctx.fillStyle = this.noteColors.innerFill;
+            ctx.beginPath();
+            ctx.ellipse(0, 6, headWidth * 0.6, headHeight * 0.6, headTilt, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = this.noteColors.headStroke;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(0, 6, headWidth * 0.6, headHeight * 0.6, headTilt, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = this.noteColors.highlight;
+        ctx.beginPath();
+        ctx.ellipse(-2.4, 4.4, headWidth * 0.35, headHeight * 0.28, headTilt, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        if (this.noteType === 'eighth' || this.noteType === 'sixteenth') {
+            const flagCount = this.noteType === 'sixteenth' ? 2 : 1;
+            for (let i = 0; i < flagCount; i++) {
+                const yOffset = stemTop + i * 4.5;
+                ctx.fillStyle = this.noteColors.stemAndFlag;
+                ctx.beginPath();
+                ctx.moveTo(stemX + stemWidth / 2, yOffset);
+                ctx.bezierCurveTo(
+                    stemX + 7.5,
+                    yOffset - 0.5,
+                    stemX + 8.2,
+                    yOffset + 5,
+                    stemX + 2.8,
+                    yOffset + 7.2
+                );
+                ctx.quadraticCurveTo(
+                    stemX + 6.7,
+                    yOffset + 6.4,
+                    stemX + 2.2,
+                    yOffset + 11
+                );
+                ctx.quadraticCurveTo(
+                    stemX + 4.6,
+                    yOffset + 9,
+                    stemX + 1.8,
+                    yOffset + 9.8
+                );
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
 
         ctx.shadowBlur = 0;
         ctx.restore();
