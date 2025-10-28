@@ -17,7 +17,8 @@ const CONFIG = {
     bullet: {
         width: 18,
         height: 18,
-        speed: 7,
+        speed: 4.5,
+        speedVariation: 1.5,  // 速度变化范围
         color: '#ff6fae'
     },
     enemy: {
@@ -167,48 +168,24 @@ renderLivesDisplay();
 // 音效管理
 class SoundManager {
     constructor() {
-        this.AudioContextClass = window.AudioContext || window.webkitAudioContext || null;
-        this.context = null;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        this.context = AudioContextClass ? new AudioContextClass() : null;
         this.masterGain = null;
         this.noiseBuffer = null;
         this.engineSound = null;
-    }
-
-    unlock() {
-        this.ensureActiveContext();
-    }
-
-    initializeContext() {
-        if (this.context || !this.AudioContextClass) {
-            return Boolean(this.context);
-        }
-
-        try {
-            this.context = new this.AudioContextClass();
+        if (this.context) {
             this.masterGain = this.context.createGain();
             this.masterGain.gain.value = 0.35;
             this.masterGain.connect(this.context.destination);
             this.noiseBuffer = this.createNoiseBuffer();
-            return true;
-        } catch (error) {
-            console.warn('音訊初始化失敗', error);
-            this.context = null;
-            this.masterGain = null;
-            this.noiseBuffer = null;
-            return false;
         }
     }
 
-    ensureActiveContext() {
-        if (!this.initializeContext()) {
-            return false;
+    unlock() {
+        if (!this.context) return;
+        if (this.context.state === 'suspended') {
+            this.context.resume();
         }
-
-        if (this.context && this.context.state === 'suspended') {
-            this.context.resume().catch(() => {});
-        }
-
-        return true;
     }
 
     createNoiseBuffer() {
@@ -223,7 +200,7 @@ class SoundManager {
     }
 
     playShootSound({ mode = 'normal' } = {}) {
-        if (!this.ensureActiveContext() || !this.context || !this.masterGain) return;
+        if (!this.context || !this.masterGain) return;
         const now = this.context.currentTime;
 
         const variant = Math.random();
@@ -274,7 +251,7 @@ class SoundManager {
     }
 
     playHitSound(type = 'stone') {
-        if (!this.ensureActiveContext() || !this.context || !this.masterGain) return;
+        if (!this.context || !this.masterGain) return;
         const now = this.context.currentTime;
 
         if (type === 'crystal') {
@@ -350,7 +327,7 @@ class SoundManager {
     }
 
     startEngineHum() {
-        if (!this.ensureActiveContext() || !this.masterGain || this.engineSound) return;
+        if (!this.context || !this.masterGain || this.engineSound) return;
         const now = this.context.currentTime;
 
         const gainNode = this.context.createGain();
@@ -465,7 +442,7 @@ class SoundManager {
 }
 
 const soundManager = new SoundManager();
-['pointerdown', 'pointerup', 'mousedown', 'click', 'keydown', 'touchstart', 'touchend'].forEach(eventName => {
+['pointerdown', 'keydown', 'touchstart'].forEach(eventName => {
     window.addEventListener(eventName, () => soundManager.unlock(), { passive: true });
 });
 
@@ -923,7 +900,8 @@ class Player {
                 gameState.bullets.push(new Bullet(bulletX + offset, bulletY, {
                     isMist: true,
                     initialAngle: angle,
-                    turnDirection: moveDirection
+                    turnDirection: moveDirection,
+                    consecutiveShots: gameState.consecutiveShots
                 }));
             });
 
@@ -936,7 +914,10 @@ class Player {
         gameState.consecutiveShots += 1;
 
         const shouldCurve = gameState.consecutiveShots >= 3;
-        gameState.bullets.push(new Bullet(bulletX, bulletY, { isCurved: shouldCurve }));
+        gameState.bullets.push(new Bullet(bulletX, bulletY, { 
+            isCurved: shouldCurve,
+            consecutiveShots: gameState.consecutiveShots
+        }));
 
         if (shouldCurve) {
             gameState.consecutiveShots = 0;
@@ -953,7 +934,16 @@ class Bullet {
         this.y = y;
         this.width = CONFIG.bullet.width;
         this.height = CONFIG.bullet.height;
-        this.speed = CONFIG.bullet.speed;
+        
+        // 根據連續射擊次數動態調整速度
+        const consecutiveShots = options.consecutiveShots || 0;
+        const baseSpeed = CONFIG.bullet.speed;
+        const variation = CONFIG.bullet.speedVariation;
+        
+        // 使用正弦波產生節奏性的速度變化
+        const speedOffset = Math.sin(consecutiveShots * 0.8) * variation;
+        this.speed = baseSpeed + speedOffset;
+        
         this.angleAtSpawn = typeof options.initialAngle === 'number' ? options.initialAngle : 0;
         this.angle = this.angleAtSpawn;
         this.dx = Math.sin(this.angle) * this.speed;

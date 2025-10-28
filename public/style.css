@@ -25,6 +25,7 @@ body {
     overflow: hidden;
     width: min(90vw, 860px);
     margin: 0 auto;
+    max-height: 95vh;
 }
 
 .game-container::before {
@@ -135,22 +136,21 @@ body {
 .mobile-controls {
     display: none;
     position: absolute;
-    inset: auto 0 18px 0;
-    padding: 0 24px;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
+    inset: auto 0 0 0;
+    padding: 0;
     width: 100%;
+    height: 100%;
     user-select: none;
     touch-action: manipulation;
     pointer-events: none;
 }
 
 .joystick-area {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: flex-start;
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
     pointer-events: auto;
+    z-index: 100;
 }
 
 .joystick-base {
@@ -191,47 +191,101 @@ body {
 }
 
 .action-area {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: flex-end;
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
     pointer-events: auto;
+    z-index: 100;
 }
 
 .shoot-button {
-    width: 104px;
-    height: 104px;
-    border-radius: 28px;
-    border: none;
-    background: radial-gradient(circle at 35% 35%, #ffe99a, #ff6b6b 75%);
-    color: #161b3b;
-    font-size: 20px;
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.25);
+    background: radial-gradient(circle at 30% 30%, #ff9090, #ff5252);
+    color: white;
+    font-size: 24px;
     font-weight: 700;
-    letter-spacing: 2px;
     cursor: pointer;
-    box-shadow: 0 12px 26px rgba(255, 107, 107, 0.38);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 8px 20px rgba(255, 82, 82, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
     touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.shoot-button-icon {
+    display: block;
+    font-size: 26px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    line-height: 1;
 }
 
 .shoot-button:active,
 .shoot-button.shoot-active {
-    transform: scale(0.94);
-    box-shadow: 0 10px 20px rgba(200, 68, 101, 0.45);
+    transform: scale(0.92);
+    box-shadow: 0 4px 12px rgba(200, 68, 68, 0.5), inset 0 1px 3px rgba(255, 255, 255, 0.2);
+}
+
+.shoot-button:active .shoot-button-icon,
+.shoot-button.shoot-active .shoot-button-icon {
+    transform: scale(0.95);
 }
 
 @media (max-width: 900px) {
     body {
         align-items: flex-start;
-        padding: 24px 12px;
+        padding: 12px 8px;
     }
 
     .game-container {
-        padding: 20px 18px 28px;
+        padding: 16px 12px 24px;
+        width: 100%;
+        max-width: 100%;
+        min-height: calc(100vh - 24px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    #gameCanvas {
+        flex: 1;
+        min-height: 0;
+        object-fit: contain;
     }
 
     .score-board {
-        flex-direction: column;
-        gap: 6px;
+        flex-direction: row;
+        gap: 12px;
+        padding: 8px 12px;
+        flex-shrink: 0;
+    }
+
+    .score-board h2 {
+        font-size: 18px;
+    }
+
+    .heart {
+        width: 18px;
+        height: 18px;
+    }
+
+    .heart::before,
+    .heart::after {
+        width: 18px;
+        height: 18px;
+    }
+
+    .heart::before {
+        top: -9px;
+    }
+
+    .heart::after {
+        left: 9px;
     }
 
     .controls-info {
@@ -239,47 +293,105 @@ body {
     }
 
     .mobile-controls {
-        display: flex;
-        gap: 18px;
+        display: block;
+    }
+
+    .joystick-area {
+        left: 18px;
+        bottom: 18px;
+    }
+
+    .action-area {
+        right: 18px;
+        bottom: 18px;
     }
 
     .joystick-base {
-        width: 140px;
-        height: 140px;
+        width: 135px;
+        height: 135px;
     }
 
     .joystick-thumb {
-        width: 56px;
-        height: 56px;
+        width: 54px;
+        height: 54px;
     }
 
     .shoot-button {
-        width: 96px;
-        height: 96px;
-        letter-spacing: 2px;
+        width: 70px;
+        height: 70px;
+    }
+
+    .shoot-button-icon {
+        font-size: 24px;
     }
 }
 
 @media (max-width: 600px) {
-    .mobile-controls {
-        padding: 0 16px;
-        gap: 14px;
-        inset: auto 0 14px 0;
+    body {
+        padding: 6px 4px;
+    }
+
+    .game-container {
+        padding: 10px 8px 18px;
+        min-height: calc(100vh - 12px);
+        border-radius: 12px;
+    }
+
+    .score-board {
+        padding: 6px 10px;
+        gap: 10px;
+    }
+
+    .score-board h2 {
+        font-size: 16px;
+    }
+
+    .heart {
+        width: 16px;
+        height: 16px;
+    }
+
+    .heart::before,
+    .heart::after {
+        width: 16px;
+        height: 16px;
+    }
+
+    .heart::before {
+        top: -8px;
+    }
+
+    .heart::after {
+        left: 8px;
+    }
+
+    .joystick-area {
+        left: 12px;
+        bottom: 12px;
+    }
+
+    .action-area {
+        right: 12px;
+        bottom: 12px;
     }
 
     .joystick-base {
-        width: 128px;
-        height: 128px;
+        width: 120px;
+        height: 120px;
     }
 
     .joystick-thumb {
-        width: 52px;
-        height: 52px;
+        width: 48px;
+        height: 48px;
     }
 
     .shoot-button {
-        width: 88px;
-        height: 88px;
+        width: 65px;
+        height: 65px;
+    }
+
+    .shoot-button-icon {
+        font-size: 22px;
     }
 }
 
