@@ -219,11 +219,12 @@ body {
 
 .shoot-button-icon {
     display: block;
-    font-size: 26px;
-    font-weight: 900;
+    font-size: 32px;
+    font-weight: 400;
     color: white;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     line-height: 1;
+    transform: translateY(-1px);
 }
 
 .shoot-button:active,
@@ -255,6 +256,9 @@ body {
     #gameCanvas {
         flex: 1;
         min-height: 0;
+        width: 100% !important;
+        height: auto !important;
+        max-height: 100%;
         object-fit: contain;
     }
 
@@ -322,7 +326,7 @@ body {
     }
 
     .shoot-button-icon {
-        font-size: 24px;
+        font-size: 28px;
     }
 }
 
@@ -391,7 +395,7 @@ body {
     }
 
     .shoot-button-icon {
-        font-size: 22px;
+        font-size: 26px;
     }
 }
 

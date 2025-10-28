@@ -103,8 +103,40 @@ let gameState = {
 // Canvas 設置
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = CONFIG.canvas.width;
-canvas.height = CONFIG.canvas.height;
+
+// 响应式调整Canvas尺寸
+function resizeCanvas() {
+    const isMobile = window.innerWidth <= 900;
+    
+    if (isMobile) {
+        // 移动端：增加Canvas高度以填充屏幕
+        canvas.width = CONFIG.canvas.width;
+        // 移动端使用更高的Canvas（约为原高度的1.5倍）
+        canvas.height = Math.floor(CONFIG.canvas.height * 1.5);
+    } else {
+        // 桌面端：使用原始尺寸
+        canvas.width = CONFIG.canvas.width;
+        canvas.height = CONFIG.canvas.height;
+    }
+}
+
+resizeCanvas();
+
+// 监听窗口大小变化
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        const wasRunning = gameState.isRunning;
+        if (wasRunning) {
+            gameState.isRunning = false;
+        }
+        resizeCanvas();
+        if (wasRunning) {
+            gameState.isRunning = true;
+        }
+    }, 250);
+});
 
 const gameContainer = document.querySelector('.game-container');
 const scoreBoardEl = document.querySelector('.score-board');
@@ -183,8 +215,27 @@ class SoundManager {
 
     unlock() {
         if (!this.context) return;
+        
+        // 恢复被暂停的音频上下文
         if (this.context.state === 'suspended') {
-            this.context.resume();
+            this.context.resume().then(() => {
+                console.log('音频已解锁，状态:', this.context.state);
+            }).catch(err => {
+                console.error('音频解锁失败:', err);
+            });
+        }
+        
+        // 在移动端，播放一个短暂的无声音频来完全解锁
+        try {
+            const oscillator = this.context.createOscillator();
+            const gainNode = this.context.createGain();
+            gainNode.gain.value = 0.001; // 几乎无声
+            oscillator.connect(gainNode);
+            gainNode.connect(this.context.destination);
+            oscillator.start(this.context.currentTime);
+            oscillator.stop(this.context.currentTime + 0.01);
+        } catch (err) {
+            console.error('播放测试音频失败:', err);
         }
     }
 
@@ -200,7 +251,17 @@ class SoundManager {
     }
 
     playShootSound({ mode = 'normal' } = {}) {
-        if (!this.context || !this.masterGain) return;
+        if (!this.context || !this.masterGain) {
+            console.warn('音频上下文未初始化');
+            return;
+        }
+        
+        // 确保音频上下文处于运行状态
+        if (this.context.state === 'suspended') {
+            console.warn('音频上下文被暂停，尝试恢复...');
+            this.unlock();
+            return;
+        }
         const now = this.context.currentTime;
 
         const variant = Math.random();
@@ -567,6 +628,7 @@ if (joystickBaseEl && joystickThumbEl) {
 
     joystickBaseEl.addEventListener('pointerdown', (event) => {
         event.preventDefault();
+        soundManager.unlock(); // 解锁音频
         joystickPointerId = event.pointerId;
         joystickRect = joystickBaseEl.getBoundingClientRect();
         if (joystickBaseEl.setPointerCapture) {
@@ -587,6 +649,7 @@ if (joystickBaseEl && joystickThumbEl) {
 if (shootButtonEl) {
     const handleShootDown = (event) => {
         event.preventDefault();
+        soundManager.unlock(); // 解锁音频
         if (shootButtonEl.setPointerCapture) {
             shootButtonEl.setPointerCapture(event.pointerId);
         }
